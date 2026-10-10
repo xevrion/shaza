@@ -1,0 +1,233 @@
+dependencies:
+  espressif/button:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__button
+      type: local
+    version: 4.2.1
+  espressif/cmake_utilities:
+    component_hash: 05165f30922b422b4b90c08845e6d449329b97370fbd06309803d8cb539d79e3
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.1'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.1.1
+  espressif/esp_codec_dev:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_codec_dev
+      type: local
+    version: 1.5.11
+  espressif/esp_io_expander:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_io_expander
+      type: local
+    version: 1.2.1
+  espressif/esp_lcd_co5300:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_lcd_co5300
+      type: local
+    version: 2.2.0
+  espressif/esp_lcd_panel_io_additions:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_lcd_panel_io_additions
+      type: local
+    version: 1.0.1~1
+  espressif/esp_lcd_touch:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_lcd_touch
+      type: local
+    version: 1.2.1
+  espressif/esp_lv_decoder:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_lv_decoder
+      type: local
+    version: 0.4.3
+  espressif/esp_lv_fs:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_lv_fs
+      type: local
+    version: 1.0.1
+  espressif/esp_lvgl_adapter:
+    dependencies: []
+    source:
+      path: /project/managed_components/espressif__esp_lvgl_adapter
+      type: local
+    version: 0.6.4
+  espressif/esp_mmap_assets:
+    component_hash: 42310c362596de2a37248c2937b1754bc29cd0356b9839e2a77cf791e6bcdde1
+    dependencies:
+    - name: espressif/cmake_utilities
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.*
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 2.0.1
+  espressif/esp_new_jpeg:
+    component_hash: e1e7e6991193c41ed6c9fc386702aa7821433319e7aa9c3147cd3236310cd69c
+    dependencies: []
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    targets:
+    - esp32
+    - esp32s2
+    - esp32s3
+    - esp32s31
+    - esp32p4
+    - esp32c2
+    - esp32c3
+    - esp32c5
+    - esp32c6
+    - esp32c61
+    - esp32h4
+    version: 1.0.2
+  espressif/freetype:
+    component_hash: aa9f7657a69b2b1c1f49044017fc424081d4e0fe6e97834cb43883548d44e3ca
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.1'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 2.14.3~1
+  espressif/knob:
+    component_hash: b56694054cd34a683ac2a6f3661963ba00b1dab741a4f3bb59ed6666cbc9f3fb
+    dependencies:
+    - name: espressif/cmake_utilities
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.*
+    - name: idf
+      require: private
+      version: '>=4.4.1'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.1.0
+  espressif/libpng:
+    component_hash: d094357a329f78668629d7c9656064b2b0123196eb6d25ca77db3782e0752480
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.1'
+    - name: espressif/zlib
+      registry_url: https://components.espressif.com
+      require: private
+      version: ^1.2.13
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.6.58~2
+  espressif/zlib:
+    component_hash: 9083cada65f1c9d298ef92266232d071c6f2f335164e2799554b3eae73aedc55
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.1'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.3.2~1
+  idf:
+    source:
+      type: idf
+    version: 5.5.1
+  lvgl/lvgl:
+    component_hash: 7d82410747bbfb319531449749e940f440f8414f041f9eaba13f0d1dd7f58cdd
+    dependencies:
+    - name: espressif/freetype
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: idf_version >=5.5 && $CONFIG{LV_USE_FREETYPE} == True
+      version: ^2.14.3
+    - name: espressif/libjpeg-turbo
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: idf_version >=5.5 && $CONFIG{LV_USE_LIBJPEG_TURBO} == True
+      version: ^3.1.1
+    - name: espressif/libpng
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: idf_version >=5.5 && $CONFIG{LV_USE_LIBPNG} == True
+      version: ^1.6.58
+    - name: espressif/lz4
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: idf_version >=5.5 && $CONFIG{LV_USE_LZ4} == True && $CONFIG{LV_USE_LZ4_INTERNAL}
+          == False
+      version: ^1.10.0
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 9.6.0~1
+  waveshare/esp32_s3_touch_amoled_1_75c:
+    dependencies: []
+    source:
+      path: /project/managed_components/waveshare__esp32_s3_touch_amoled_1_75c
+      type: local
+    version: 3.0.0
+  waveshare/esp_lcd_touch_cst9217:
+    component_hash: f755f8e3ae61df23413256a6a447e367a4b844538229c183ff0e89dbbdc15319
+    dependencies:
+    - name: espressif/esp_lcd_touch
+      registry_url: https://components.espressif.com
+      require: public
+      version: ^1.1.0
+    - name: idf
+      require: private
+      version: '>=4.4.2'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 2.0.0
+  waveshare/qmi8658:
+    dependencies: []
+    source:
+      path: /project/managed_components/waveshare__qmi8658
+      type: local
+    version: 2.0.1
+direct_dependencies:
+- espressif/button
+- espressif/cmake_utilities
+- espressif/esp_codec_dev
+- espressif/esp_io_expander
+- espressif/esp_lcd_co5300
+- espressif/esp_lcd_panel_io_additions
+- espressif/esp_lcd_touch
+- espressif/esp_lv_decoder
+- espressif/esp_lv_fs
+- espressif/esp_lvgl_adapter
+- espressif/esp_mmap_assets
+- espressif/esp_new_jpeg
+- espressif/freetype
+- espressif/knob
+- espressif/libpng
+- espressif/zlib
+- idf
+- lvgl/lvgl
+- waveshare/esp32_s3_touch_amoled_1_75c
+- waveshare/esp_lcd_touch_cst9217
+- waveshare/qmi8658
+manifest_hash: 2e0dc89ddf8c2561399c54e9afc55ad1df4274efd265be35a7ab6bfb21e89960
+target: esp32s3
+version: 2.0.0
