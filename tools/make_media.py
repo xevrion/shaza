@@ -19,7 +19,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "host", "out")
 DOCS = os.path.join(ROOT, "docs")
 SIM = os.path.join(ROOT, "host", "build", "sim")
-LOOKS = ["halo", "orb", "dial"]
+LOOKS = ["orb", "halo", "dial"]  # in make_look's order
 STATES = ["1_ready", "2_listening", "3_thinking", "4_found", "5_not_found", "6_ready_after"]
 SONGS = ["vichudo", "kesariya", "gurenge_jp", "golden_hour", "bad_guy", "get_lucky", "blinding_lights", "loser", "laufey", "gurenge"]
 GIF = "scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle"

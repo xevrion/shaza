@@ -484,9 +484,9 @@ protected:
 
 std::unique_ptr<Look> make_look(int which) {
     switch (which) {
-    case 1: return std::make_unique<Orb>();
+    case 1: return std::make_unique<Halo>();
     case 2: return std::make_unique<Dial>();
-    default: return std::make_unique<Halo>();
+    default: return std::make_unique<Orb>();
     }
 }
 

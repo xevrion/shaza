@@ -88,15 +88,15 @@ Flashing replaces whatever firmware is on the board.
 
 ## Three looks
 
-They share the result screen and differ in how they listen. `D` switches between them in the simulator.
+They differ in how they listen. Orb is the default; `D` switches between them in the simulator.
 
-**Halo**: one hairline ring that breathes. Listening sends thin ripples out of it, as strong as the room is loud, while a bright arc fills clockwise over the five seconds. Thinking is a short comet arc going round.
-
-![halo](docs/states_halo.png)
-
-**Orb**: a small glowing pearl that swells with the room inside a faint progress ring, shrinks to a slow heartbeat while thinking, and opens into a round cover with a glow in the cover's colour.
+**Orb**: a small glowing pearl that swells with the room inside a faint progress ring, shrinks to a slow heartbeat while thinking, and opens into a round cover with a glow in the cover's colour. The thing you watched listening becomes the answer.
 
 ![orb](docs/states_orb.png)
+
+**Halo**: one hairline ring that breathes. Listening sends thin ripples out of it, as strong as the room is loud, while a bright arc fills clockwise over the five seconds. Thinking is a short comet arc going round. The cover is a rounded square.
+
+![halo](docs/states_halo.png)
 
 **Dial**: 64 fine ticks round the edge. Listening sweeps once round them and each tick keeps the loudness it heard, so the clip is left drawn as a groove. Thinking sends one bright tick round the groove.
 
@@ -112,11 +112,11 @@ Pixels sent per frame in a scripted run (`make shots`), averaged over each phase
 
 | | ready | listening | thinking | found | no match |
 |---|---|---|---|---|---|
-| halo | 18k | 79k (worst 94k) | 42k | 9k | 1k |
 | orb | 20k | 75k (worst 99k) | 30k | 15k | 1k |
+| halo | 18k | 79k (worst 94k) | 42k | 9k | 1k |
 | dial | 3k | 6k | 12k | 9k | 1k |
 
-Halo and orb stay under about 100k pixels (10 ms) a frame while listening. The dial breaks that on purpose for a single frame whenever every tick changes at once (a new phase starting), which repaints the whole dial: about 149k pixels, one late frame. These are pixel counts from the simulator. Render and send times on the chip still need measuring.
+Orb and halo stay under about 100k pixels (10 ms) a frame while listening, orb only just, so it is the first thing to time on the board. The dial breaks that on purpose for a single frame whenever every tick changes at once (a new phase starting), which repaints the whole dial: about 149k pixels, one late frame. These are pixel counts from the simulator. Render and send times on the chip still need measuring.
 
 ## Tests
 

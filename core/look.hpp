@@ -41,6 +41,7 @@ private:
 };
 
 constexpr int kLooks = 3;
+// 0 is orb, the default; 1 halo; 2 dial.
 std::unique_ptr<Look> make_look(int which);
 
 // For the tests: the rectangles frame() decided to repaint last time.
