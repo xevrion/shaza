@@ -26,9 +26,19 @@ static long lit(const Canvas& a) {
     return n;
 }
 
+// Largest difference in any 8 bit channel between the two canvases.
+static int channel_gap(const Canvas& a, const Canvas& b) {
+    int worst = 0;
+    for (size_t i = 0; i < a.px.size(); ++i) {
+        const Rgb p = unpack(a.px[i]), q = unpack(b.px[i]);
+        worst = std::max({worst, std::abs(p.r - q.r), std::abs(p.g - q.g), std::abs(p.b - q.b)});
+    }
+    return worst;
+}
+
 static void shapes_match_reference() {
     std::srand(7);
-    int worst = 0;
+    int worst = 0, worst_gap = 0;
     long total_lit = 0;
     for (int i = 0; i < 300; ++i) {
         Canvas fast, slow;
@@ -36,6 +46,7 @@ static void shapes_match_reference() {
         for (size_t k = 0; k < fast.px.size(); k += 7) fast.px[k] = slow.px[k] = uint16_t(k * 2654435761u >> 16);
         const float cx = rnd(-40, 506), cy = rnd(-40, 506), r = rnd(0.5f, 240), w = rnd(0.6f, 14), al = rnd(0.1f, 1);
         const Rgb c = {uint8_t(std::rand()), uint8_t(std::rand()), uint8_t(std::rand())};
+        bool full_circle = false;
         switch (i % 3) {
         case 0:
             ring(fast.sf, cx, cy, r, w, c, al);
@@ -45,6 +56,7 @@ static void shapes_match_reference() {
             const float a0 = rnd(-7, 7), a1 = a0 + rnd(0.01f, 6.5f);
             arc(fast.sf, cx, cy, r, w, a0, a1, c, al);
             reference::arc(slow.sf, cx, cy, r, w, a0, a1, c, al);
+            full_circle = a1 - a0 >= 6.28318530718f;  // drawn as a ring, so held to the ring's tolerance
             break;
         }
         default: {
@@ -53,11 +65,19 @@ static void shapes_match_reference() {
             reference::glow_disc(slow.sf, cx, cy, r / 3, g, c, al, s);
         }
         }
-        const int d = differing(fast, slow);
-        if (d > worst) worst = d, std::printf("  case %d differs in %d pixels (cx %.1f cy %.1f r %.1f w %.1f)\n", i, d, double(cx), double(cy), double(r), double(w));
+        // Arcs are computed exactly, so they must match exactly. Rings and glows go through a table
+        // (radial_rows) and may be a step of the RGB565 grid off: 8 levels in red and blue.
+        if (i % 3 == 1 && !full_circle) {
+            const int d = differing(fast, slow);
+            if (d > worst) worst = d, std::printf("  arc case %d differs in %d pixels\n", i, d);
+        } else {
+            worst_gap = std::max(worst_gap, channel_gap(fast, slow));
+        }
         total_lit += lit(fast);
     }
+    std::printf("  rings and glows: largest channel difference from the exact formula %d of 255\n", worst_gap);
     CHECK(worst == 0);
+    CHECK(worst_gap <= 9);
     CHECK(total_lit > 100000);
 }
 

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace shaza {
 
@@ -12,12 +13,18 @@ Rgb unpack(uint16_t p) {
     return {uint8_t((r << 3) | (r >> 2)), uint8_t((g << 2) | (g >> 4)), uint8_t((b << 3) | (b >> 2))};
 }
 
+// round(v / 255) for v up to 65535 without a division, which the chip does slowly.
+static inline int div255(int v) {
+    v += 128;
+    return (v + (v >> 8)) >> 8;
+}
+
 uint16_t blend(uint16_t dst, Rgb s, int a) {
     if (a <= 0) return dst;
     if (a >= 255) return pack(s);
     const Rgb d = unpack(dst);
-    auto mixc = [a](int x, int y) { return uint8_t(x + ((y - x) * a + 127) / 255); };
-    return pack({mixc(d.r, s.r), mixc(d.g, s.g), mixc(d.b, s.b)});
+    const int na = 255 - a;
+    return pack({uint8_t(div255(d.r * na + s.r * a)), uint8_t(div255(d.g * na + s.g * a)), uint8_t(div255(d.b * na + s.b * a))});
 }
 
 Rgb scale(Rgb c, float k) {
@@ -67,10 +74,51 @@ static void blend_span(rk::Surface& sf, int y, int start, int end, Rgb c, const 
     int x0 = start, x1 = end;
     if (!clip_span(sf, y, x0, x1)) return;
     const uint16_t* src = sf.row_at(y);
+    const uint16_t full = pack(c);
     bool any = false;
+    // blend() inlined, with the shape's colour unpacked once rather than per pixel.
     for (int x = x0; x <= x1; ++x) {
         const int a = int(cov[x - start] * 255.0f + 0.5f);
-        g_row[x - x0] = blend(src[x], c, a);
+        uint16_t out = src[x];
+        if (a >= 255) {
+            out = full;
+        } else if (a > 0) {
+            const uint16_t p = src[x];
+            const int r = (p >> 11) & 31, g = (p >> 5) & 63, b = p & 31;
+            const int na = 255 - a;
+            const int rr = div255(((r << 3) | (r >> 2)) * na + c.r * a), gg = div255(((g << 2) | (g >> 4)) * na + c.g * a), bb = div255(((b << 3) | (b >> 2)) * na + c.b * a);
+            out = uint16_t(((rr & 0xF8) << 8) | ((gg & 0xFC) << 3) | (bb >> 3));
+        }
+        g_row[x - x0] = out;
+        any |= a > 0;
+    }
+    if (any) sf.write_row(x0, y, g_row, x1 - x0 + 1);
+}
+
+// One colour at every alpha, worked out once per shape: most glow and ring pixels land on the black
+// a zone was just cleared to, and for those the blend is then a table read.
+struct Tint {
+    uint16_t over_black[256];
+    uint16_t full;
+    Rgb c;
+    explicit Tint(Rgb colour) : full(pack(colour)), c(colour) {
+        for (int a = 0; a < 256; ++a) over_black[a] = blend(0, colour, a);
+    }
+};
+
+// Like blend_span, with alpha already in bytes. alpha[0] belongs to pixel start.
+static void blend_span_bytes(rk::Surface& sf, int y, int start, int end, const Tint& t, const uint8_t* alpha) {
+    int x0 = start, x1 = end;
+    if (!clip_span(sf, y, x0, x1)) return;
+    const uint16_t* src = sf.row_at(y);
+    bool any = false;
+    for (int x = x0; x <= x1; ++x) {
+        const int a = alpha[x - start];
+        const uint16_t p = src[x];
+        uint16_t out = p;
+        if (a >= 255) out = t.full;
+        else if (a > 0) out = p == 0 ? t.over_black[a] : blend(p, t.c, a);
+        g_row[x - x0] = out;
         any |= a > 0;
     }
     if (any) sf.write_row(x0, y, g_row, x1 - x0 + 1);
@@ -129,10 +177,69 @@ static void band_rows(rk::Surface& sf, float cx, float cy, float r_in, float r_o
     }
 }
 
+// Square root from the bit-level estimate of 1/sqrt and two Newton steps: multiplies only, within
+// about 5 parts in a million, where sqrtf is a library call on the chip.
+static inline float fast_sqrt(float x) {
+    if (x <= 0) return 0;
+    uint32_t i;
+    std::memcpy(&i, &x, 4);
+    i = 0x5f3759df - (i >> 1);
+    float y;
+    std::memcpy(&y, &i, 4);
+    y *= 1.5f - 0.5f * x * y * y;
+    y *= 1.5f - 0.5f * x * y * y;
+    return x * y;
+}
+
+// For shapes whose coverage depends only on the distance from a centre. The coverage is tabulated
+// once per call in even steps of distance and interpolated, so each pixel costs a handful of
+// multiplies rather than a library square root and a division, which the chip does slowly.
+// (Tabulating against distance squared instead was coarse near the centre: a small sharp core in a
+// wide glow came out 25 levels off at its edge.)
+template <typename CovOfD>
+static void radial_rows(rk::Surface& sf, float cx, float cy, float r_in, float r_out, Rgb c, CovOfD cov_of_d) {
+    constexpr int kLut = 2048;
+    static float lut[kLut + 1];
+    static uint8_t alpha[1024];
+    const float lo = r_in * r_in, hi = r_out * r_out;
+    if (r_out <= r_in) return;
+    const float step = (r_out - r_in) / kLut, inv = kLut / (r_out - r_in);
+    for (int i = 0; i <= kLut; ++i) lut[i] = clamp01(cov_of_d(r_in + i * step)) * 255.0f;
+    const Tint tint(c);
+
+    const int y0 = int(std::floor(cy - r_out)), y1 = int(std::ceil(cy + r_out));
+    for (int y = std::max(y0, 0); y <= std::min(y1, sf.height() - 1); ++y) {
+        const float dy = y + 0.5f - cy;
+        if (std::fabs(dy) > r_out) continue;
+        const float xo = std::sqrt(hi - dy * dy);
+        const float xi = std::fabs(dy) < r_in ? std::sqrt(lo - dy * dy) : 0.0f;
+        int spans[2][2];
+        int n = 0;
+        const int l0 = int(std::floor(cx - xo)) - 1, r1 = int(std::ceil(cx + xo)) + 1;
+        const int l1 = int(std::ceil(cx - xi)) + 1, r0 = int(std::floor(cx + xi)) - 1;
+        if (r0 <= l1) {
+            spans[n][0] = l0, spans[n][1] = r1, ++n;
+        } else {
+            spans[n][0] = l0, spans[n][1] = l1, ++n;
+            spans[n][0] = r0, spans[n][1] = r1, ++n;
+        }
+        const float dy2 = dy * dy;
+        for (int s = 0; s < n; ++s) {
+            const int a = std::max(spans[s][0], 0), b = std::min(spans[s][1], sf.width() - 1);
+            for (int x = a; x <= b; ++x) {
+                const float dx = x + 0.5f - cx;
+                const float at = (fast_sqrt(dx * dx + dy2) - r_in) * inv;
+                const int i = int(at);
+                alpha[x - a] = at >= 0 && i < kLut ? uint8_t(lut[i] + (lut[i + 1] - lut[i]) * (at - float(i)) + 0.5f) : 0;
+            }
+            blend_span_bytes(sf, y, a, b, tint, alpha);
+        }
+    }
+}
+
 void ring(rk::Surface& sf, float cx, float cy, float r, float width, Rgb c, float alpha) {
     const float half = width / 2;
-    band_rows(sf, cx, cy, std::max(0.0f, r - half - 1.5f), r + half + 1.5f, c,
-              [&](float dx, float dy) { return alpha * ring_cov(std::sqrt(dx * dx + dy * dy), r, half); });
+    radial_rows(sf, cx, cy, std::max(0.0f, r - half - 1.5f), r + half + 1.5f, c, [&](float d) { return alpha * ring_cov(d, r, half); });
 }
 
 void arc(rk::Surface& sf, float cx, float cy, float r, float width, float a0, float a1, Rgb c, float alpha) {
@@ -157,8 +264,7 @@ static float glow_cov(float d, float r, float glow, float strength) {
 }
 
 void glow_disc(rk::Surface& sf, float cx, float cy, float r, float glow, Rgb c, float alpha, float strength) {
-    band_rows(sf, cx, cy, 0.0f, r + glow + 1.0f, c,
-              [&](float dx, float dy) { return alpha * glow_cov(std::sqrt(dx * dx + dy * dy), r, glow, strength); });
+    radial_rows(sf, cx, cy, 0.0f, r + glow + 1.0f, c, [&](float d) { return alpha * glow_cov(d, r, glow, strength); });
 }
 
 void line(rk::Surface& sf, float x0, float y0, float x1, float y1, float width, Rgb c, float alpha) {
