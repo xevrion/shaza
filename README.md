@@ -20,7 +20,8 @@ What has been checked, and how:
 
 - **Recognition works through a real microphone.** In the simulator, with the laptop's built-in mic and songs playing from the laptop's speakers, 14 of 22 tries were recognised, in about a second each including the relay. Details in [docs/recognition.md](docs/recognition.md).
 - **Tests pass:** `make test` runs 24 relay tests and four C++ suites (199 checks). Every drawing shortcut is compared pixel for pixel with a slow reference, and the frame engine that repaints only what changed is compared with a full repaint on every frame of a scripted run through every state.
-- **The board:** only the microphone bring-up firmware exists so far (`main/`). It builds. It has **not** been run on the board yet, so the microphones are unverified, and the full app firmware (Wi-Fi, upload, the looks on the real panel, frame timing) is not written yet.
+- **The board's microphones work.** The bring-up firmware (`main/`) ran on the board: no all-zero samples, both channels within about 1 dB of each other, about -40 dBFS in a quiet room and -27 dBFS with music, peaks around -17 dBFS at 30 dB gain. A four second recording from the board, sent through the relay, came back as WILDFLOWER by Billie Eilish.
+- **Not written yet:** the full app firmware for the board (Wi-Fi, upload, the looks on the real panel, frame timing). Today the board runs only the microphone test.
 - **Frame budget:** measured in the simulator as pixels sent per frame, not yet as milliseconds on the chip. See [Smoothness](#smoothness).
 
 ## How it works
