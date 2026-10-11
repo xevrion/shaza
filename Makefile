@@ -1,9 +1,9 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++17 -O2 -Wall -Wextra -Icore -Ihost -Iroundkit/include
 
-CORE := core/paint.cpp core/text.cpp core/reply.cpp core/app.cpp core/look.cpp
+CORE := core/paint.cpp core/text.cpp core/reply.cpp core/app.cpp core/look.cpp core/signature.cpp core/json.cpp core/shazam.cpp
 HDRS := $(wildcard core/*.hpp core/*.inc host/*.hpp roundkit/include/rk/*.hpp)
-TESTS := host/build/test_audio host/build/test_paint host/build/test_app host/build/test_look
+TESTS := host/build/test_audio host/build/test_paint host/build/test_app host/build/test_look host/build/test_signature host/build/test_shazam
 UV_TEST := uv run -q --python 3.12 --with pillow --with fonttools
 
 .PHONY: test relay-test sim fake shots media relay build flash clean
